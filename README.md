@@ -1,2 +1,21 @@
-# banken
-testing testing
+# banken - Hur jag skapa koden. (Delarna jag jobbade på)
+
+Min kod har jag skapat genom att för det mesta följa av Arbers vägledning under lektioner, men annat än det behövde jag lista ut själv.
+
+Mitt första problem som jag behövde reda ut var i min CreateAccount då jag behövde bestämma hur utseendet av sidan skulle se ut. Så som jag hade det var att UI'n visade sig vara rörig. "Ta Bort" knapporna för konton skulle vara för stora och röra varandra, alla input boxes skulle vara olika längder, och det var helt enkelt inte strukturerad och såg inte rent ut. För att fixa detta valde jag att byta min UI struktur från det orena jag hade, till en bootstrap format där jag använde mig av "row" i min CreateAccount för att kunna omvandla min page till en ren och strukturerad version av sig själv. Då kunde jag optimisera storleken av alla fält till att vara lika stora och på så sätt vara mycket snyggare.
+
+Nästa sak jag behövde komma på själv var hur jag skulle skapa mitt Transaction History page, som skulle inkludera all historik på dina deposits, withdrawals, och transfers. För att börja, valde jag med att kolla på Blazors Weather page, då fick jag tanken att jag helt enkelt kunde använda mig av strukturen som Weather sidan använde sig av. Efter jag hade analyserat hur weather sidan fungerade så implementerade jag samma struktur, bara att jag bytte ut orden och logiken till att vara mer anpassad i hur Transaktion Historik fungerade. Utseendet och orden var lätt att skapa eftersom jag använde mig av Weather sidan, men logiken åt andra hand behövde jag arbeta mer själv på. 
+
+För att börja med behövde jag koda till logik som skulle göra så att historiken kunde visa olika typer av Transaktioner som Transaktion Historiken skulle kunna visa. För detta valde jag att skapa en simpel Foreach. Inuti Foreach loopen dock började jag med att använde en if-sats, men fick senare lära mig att en switch-sats också skulle fungera. Efter jag prova båda märkte jag att en switch-sats var mycket renare i hur den såg ut, hade mindre mängd kod och är tydligare när det finns flera olika typer av transaktioneratt hantera. Det förbättrade läsbarheten vilket ledde mig till att behålla switch över en if-sats.
+
+I min @code använde jag mig av det jag lärde från att analysera Weather-sidan. Sidans innehåll hade bland annat en tydlig struktur med @inject och OnInitializedAsync. Genom att återanvända denna struktur kunde jag snabbt sätta upp en sida med tydlig separation mellan datahämtning i min @code och presentation i min html. För att hantera transaktioner behövde jag också lägga en Inject IAccountService för att logiken för datahanteringen ligger i en annan komponent.
+
+Sen kom min nästa page som jag behövde lösa ut själv, Konton, vilket rätt simpelt skulle inkludera dina nuvarande konton, med tillgång till att lägga in och dra ut pengar. För att börja så använde jag mig av samma UI struktur som Weather sidan på grund av enkelhetens skull. den erbjöd mig en tydlig upplägg av dataladdning i OnInitializedAsync() och en tabell för att visa listor.
+
+Jag igen gjorde en till @inject IAccountService för att få tillgång till mina konton, och för att vsa alla konton använde jag mig ännu en gång en foreach loop som generera en tabellrad per konto, då varje rad visa kontoinformationen, samt två knappar. En för att sätta in pengar och en för att ta ut. Under belopp fältet la jag även till en felmeddelande med klassen text-danger, vilket ger användaren direkt feedback när ett ogiltig belopp skrivs in, såsom ett negativt nummer.
+
+Jag la in en intern modellklass AccountAmountModel som håller reda på beloppet och eventuella felmeddelande för varje konto. På så sätt kan varje konto hantera sitt eget belopp oberoende av de andra. Utan detta skulle jag inte kunna hantera separata belopp, vilket skulle leda till att en enda variabel för "amount" hade allas konton delade belopp, vilket innebär att ändringen av siffran på ett kontos belopp skulle ändra beloppet av alla konton.
+
+Metoderna DepositAsync och WithdrawAsync anropar motsvarande metoder i AccountService, och jag la till även de med en async/wait för att UI'n inte skulle frysa under längre operationer, och för att det var lätt. Ovanpå detta la jag en RefreshAsync för att säkerställa att konto listan alltid visar de senaste saldona efter varje transaktion.
+
+Sammanfattningsvist skapade jag mina sidor med fokus på struktur och användarvänlighet. Med Bootstrap fick jag ett rent gränssnitt, och genom att använda Blazors Weather-sida som grund kunde jag bygga TransactionHistory med tydlig logik. Async-metoder höll också UI'n responsivt och uppdaterat.
