@@ -1,3 +1,4 @@
+using banken.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -11,7 +12,12 @@ namespace banken
             builder.RootComponents.Add<App>("#app");
             builder.RootComponents.Add<HeadOutlet>("head::after");
 
+            builder.Services.AddScoped<IAccountService, AccountService>();
+
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddScoped<banken.Services.UserService>();
+            builder.Services.AddScoped<IStorageService, StorageService>();
+
 
             await builder.Build().RunAsync();
         }

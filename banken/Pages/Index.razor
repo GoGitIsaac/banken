@@ -1,0 +1,14 @@
+﻿@page "/"
+@using banken.Services
+@inject UserService UserService
+
+<h1>Hey Isaac!</h1>
+
+@code {
+    private string userName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userName = await UserService.GetUserNameAsync();
+    }
+}

@@ -1,0 +1,115 @@
+﻿@page "/TransactionHistory"
+@inject IAccountService AccountService
+
+<h3>Transaktionshistorik</h3>
+
+@if (_transactions == null)
+{
+    <p><em>Laddar...</em></p>
+}
+else if (!_transactions.Any())
+{
+    <p>Du har inga transaktioner.</p>
+}
+else
+{
+    <button class="btn btn-danger" @onclick="ClearHistory">Rensa historik</button>
+
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Tid</th>
+                <th>Belopp</th>
+                <th>Typ</th>
+                <th>Från/Till konto</th>
+                <th>Saldo efter</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in _transactions)
+            {
+                var fromAccount = _accounts.FirstOrDefault(a => a.Id == t.FromAccountId);
+                var toAccount = _accounts.FirstOrDefault(a => a.Id == t.ToAccountId);
+
+                string accountDisplay = "-";
+                decimal saldoEfter = t.BalanceAfter;
+
+                switch (t.TransactionType)
+                {
+                    case TransactionType.Deposit:
+                        accountDisplay = toAccount?.Name ?? "-";
+                        saldoEfter = t.BalanceAfter; // använd historiskt saldo
+                        break;
+
+                    case TransactionType.Withdraw:
+                        accountDisplay = fromAccount?.Name ?? "-";
+                        saldoEfter = t.BalanceAfter;
+                        break;
+
+                    case TransactionType.TransferOut:
+                        // Pengarna gick ut från detta konto → saldo efter överföring finns i t.BalanceAfter
+                        accountDisplay = fromAccount?.Name ?? "-";
+                        saldoEfter = t.BalanceAfter;
+                        break;
+
+                    case TransactionType.TransferIn:
+                        // Pengarna kom in till detta konto → saldo efter överföring finns i t.BalanceAfter
+                        accountDisplay = toAccount?.Name ?? "-";
+                        saldoEfter = t.BalanceAfter;
+                        break;
+
+                    default:
+                        accountDisplay = "-";
+                        saldoEfter = t.BalanceAfter;
+                        break;
+                }
+
+
+                <tr>
+                    <td>@t.TimeStamp.ToLocalTime()</td>
+                    <td>@t.Amount</td>
+                    <td>@DisplayTransactionType(t.TransactionType)</td>
+                    <td>@accountDisplay</td>
+                    <td>@saldoEfter</td>  @* <-- Använd saldoEfter här *@
+                </tr>
+            }
+        </tbody>
+
+    </table>
+
+
+}
+
+@code {
+    private List<Transaction>? _transactions;
+    private List<IBankAccount> _accounts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = await AccountService.GetAccounts();
+        _transactions = await AccountService.GetAllTransactions();
+    }
+
+    private static string DisplayTransactionType(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.Deposit => "Deposit",
+            TransactionType.Withdraw => "Withdraw",
+            TransactionType.TransferIn => "TransferFrom",
+            TransactionType.TransferOut => "TransferTo",
+            _ => "Unknown"
+        };
+    }
+
+    private async Task ClearHistory()
+    {
+        _transactions = new(); // töm lokalt
+        await AccountService.ClearAllTransactions(); // töm från konton + spara
+        StateHasChanged(); // uppdatera UI
+    }
+
+
+
+}

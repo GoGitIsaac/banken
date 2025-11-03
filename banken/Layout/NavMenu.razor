@@ -1,13 +1,19 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
+﻿@using banken.Services
+@inject UserService UserService
+@inject NavigationManager Nav
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
         <a class="navbar-brand" href="">banken</a>
+
+
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
-</div>
+</div>  
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+<div class="@NavMenuCssClass nav-scrollable">
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -15,13 +21,23 @@
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            <NavLink class="nav-link" href="CreateAccount">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Skapa Konto
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            <NavLink class="nav-link" href="CurrentAccounts">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Konton
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Transfer">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Transfer
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="TransactionHistory">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Transaction History
             </NavLink>
         </div>
     </nav>
@@ -29,8 +45,26 @@
 
 @code {
     private bool collapseNavMenu = true;
+    private string? userName;
+    private bool isLoaded = false;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            userName = await UserService.GetUserNameAsync();
+        }
+        catch
+        {
+            userName = null;
+        }
+        finally
+        {
+            isLoaded = true; // mark as loaded so UI can safely render
+        }
+    }
 
     private void ToggleNavMenu()
     {

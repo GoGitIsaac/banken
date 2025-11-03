@@ -1,0 +1,154 @@
+﻿@page "/Transfer"
+@using System.Linq
+@using banken.Interface
+@inject IAccountService AccountService
+
+<h3>Transfer</h3>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @ErrorMessage
+    </div>
+}
+
+@if (_accounts == null || _accounts.Count < 2)
+{  // Transferra pengar från 1 konto till en annan
+   <p>Skapa minst 2 konto för att göra en transaktion</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="OnSubmitAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-2">
+            <label>Från konto</label>
+            <InputSelect TValue="Guid" @bind-Value="_model.FromAccountId" class="form-select" @onchange="HandleFormChanged">
+                <option value="@Guid.Empty">Välj konto..</option>
+                @foreach (var account in _accounts)
+                { // Shows accounts you can transfer from.
+                    <option value="@account.Id">@account.Name - Saldo: @account.Balance</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="mb-2">
+            <label>Till konto</label>
+            <InputSelect TValue="Guid" @bind-Value="_model.ToAccountId" class="form-select" disabled="@(_model.FromAccountId == Guid.Empty)">
+                <option value="@Guid.Empty">Välj konto</option>
+                @foreach(var account in _toAccounts)
+                { // Shows accounts you can transfer to.
+                    <option value="@account.Id">@account.Name - Saldo: @account.Balance</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="mb-2">
+            <label>Belopp</label>
+            <InputNumber TValue="decimal" @bind-Value="_model.Amount" class="form-control" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Överför</button>
+    </EditForm>
+
+    <h4>Konto</h4>
+    <ul>
+        @foreach (var account in _accounts)
+        { // Shows your currently selected accounts to transfer to and from.
+            <li>
+                @account.Name - Saldo: @account.Balance
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private readonly TransferMFormModel _model = new();
+    private List<IBankAccount> _accounts = new();
+    private List<IBankAccount> _toAccounts = new();
+
+    private string? ErrorMessage;
+
+    private class TransferMFormModel
+    {
+        public Guid FromAccountId { get; set; }
+        public Guid ToAccountId { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = await AccountService.GetAccounts();
+        _toAccounts = _accounts.ToList(); // kopiera till listan för mottagarkonton
+    }
+
+    private async Task OnSubmitAsync()
+    {
+        ErrorMessage = string.Empty;
+
+        if (_model.FromAccountId == Guid.Empty || _model.ToAccountId == Guid.Empty)
+        {
+            ErrorMessage = "Välj både från- och tillkonto.";
+            StateHasChanged();
+            return;
+        }
+
+        if (_model.FromAccountId == _model.ToAccountId)
+        {
+            ErrorMessage = "Du kan inte överföra till samma konto.";
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            await AccountService.Transfer(_model.FromAccountId, _model.ToAccountId, _model.Amount);
+       
+            _accounts = await AccountService.GetAccounts();
+            _toAccounts = _accounts.Where(a => a.Id != _model.FromAccountId).ToList();
+
+            _model.Amount = 0;
+            _model.ToAccountId = Guid.Empty;
+            _model.FromAccountId = Guid.Empty;
+
+            StateHasChanged();
+        }
+        catch (InvalidOperationException ex)
+        {
+            // t.ex. "Insufficient funds"
+            ErrorMessage = ex.Message;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "Ett oväntligt fel inträffade: " + ex.Message;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleFormChanged(ChangeEventArgs eventArgs)
+    {
+        if (Guid.TryParse(eventArgs.Value?.ToString(), out var id))
+        {
+            OnFormChanged(id);
+        }
+    }
+
+    private void OnFormChanged(Guid fromId)
+    {
+        _model.FromAccountId = fromId;
+        var from = _accounts.FirstOrDefault(x => x.Id == fromId);
+
+        if (from != null)
+        {
+            _toAccounts = _accounts.Where(x => x.Id != fromId).ToList();
+        }
+        else
+        {
+            _toAccounts = _accounts.ToList();
+        }
+
+        _model.ToAccountId = Guid.Empty;
+    }
+}

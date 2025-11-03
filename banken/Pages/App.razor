@@ -1,0 +1,52 @@
+﻿@using banken.Services
+@inject UserService UserService
+@inject NavigationManager Nav
+
+<Router AppAssembly="@typeof(App).Assembly" OnNavigateAsync="HandleNavigation">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p>Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    private bool _navigating = false;
+
+    private async Task HandleNavigation(NavigationContext args)
+    {
+        // Prevent recursive redirects
+        if (_navigating)
+            return;
+
+        _navigating = true;
+
+        try
+        {
+            var userName = await UserService.GetUserNameAsync();
+
+            // If not logged in and not already on login page → send to login
+            if (string.IsNullOrEmpty(userName) &&
+              !args.Path.Contains("login", StringComparison.OrdinalIgnoreCase))
+            {
+                Nav.NavigateTo("/login");
+                return;
+            }
+
+
+            // If already logged in but trying to go to login → send to home
+            else if (!string.IsNullOrEmpty(userName) &&
+                     args.Path.Contains("login", StringComparison.OrdinalIgnoreCase))
+            {
+                Nav.NavigateTo("/", forceLoad: true);
+            }
+        }
+        finally
+        {
+            _navigating = false;
+        }
+    }
+}

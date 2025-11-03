@@ -1,0 +1,142 @@
+﻿    @page "/CurrentAccounts"
+@using banken.Interface
+@inject IAccountService AccountService
+
+<h3>Ändra Konton</h3>
+
+@if (accounts == null)
+{ // ifall hemsidan inte har fått tag på mängden accounts ännu.
+    <p><em>Laddar...</em></p>
+}
+else if (!accounts.Any())
+{ // ifall mängden accounts är 0. 
+    <p>Det finns inga konton.</p>
+}
+else
+{ // 
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Namn</th>
+                <th>Typ</th>
+                <th>Valuta</th>
+                <th>Saldo</th>
+                <th style="width:200px">Belopp</th>
+                <th>Åtgärd</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var account in accounts)
+            {
+                var am = accountAmounts.First(a => a.Id == account.Id);
+                <tr>
+                    <td>@account.Name</td>
+                    <td>@account.AccountType</td>
+                    <td>@account.Currency</td>
+                    <td>@account.Balance</td>
+                    <td>
+                        <InputNumber TValue="decimal" @bind-Value="am.Amount" class="form-control" />
+                        @if (!string.IsNullOrEmpty(am.Error))
+                        {
+                            <div class="text-danger">@am.Error</div>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-success me-1" @onclick="() => DepositAsync(account.Id)">Sätt in</button>
+                        <button class="btn btn-sm btn-warning" @onclick="() => WithdrawAsync(account.Id)">Ta ut</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<IBankAccount> accounts = new();
+
+    private class AccountAmountModel
+    {
+        public Guid Id { get; set; }
+        public decimal Amount { get; set; }
+        public string? Error { get; set; }
+    }
+
+    private List<AccountAmountModel> accountAmounts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        accounts = await AccountService.GetAccounts();
+        accountAmounts = accounts.Select(a => new AccountAmountModel { Id = a.Id, Amount = 0M, Error = null }).ToList();
+    }
+
+    private async Task RefreshAsync()
+    {
+        accounts = await AccountService.GetAccounts();
+        foreach (var a in accounts)
+        {
+            if (!accountAmounts.Any(x => x.Id == a.Id))
+                accountAmounts.Add(new AccountAmountModel { Id = a.Id, Amount = 0M, Error = null });
+        }
+
+        // Remove entries for deleted accounts
+        var removed = accountAmounts.Where(x => !accounts.Any(a => a.Id == x.Id)).ToList();
+        foreach (var r in removed)
+            accountAmounts.Remove(r);
+    }
+
+    private async Task DepositAsync(Guid accountId)
+    {
+        var am = accountAmounts.First(a => a.Id == accountId);
+        am.Error = null;
+        var amount = am.Amount;
+        if (amount <= 0M)
+        {
+            am.Error = "Belopp måste vara större än 0.";
+            return;
+        }
+
+        try
+        {
+            await AccountService.Deposit(accountId, amount);
+            await RefreshAsync();
+            am.Amount = 0M;
+        }
+        catch (Exception ex)
+        {
+            am.Error = "Fel: " + ex.Message;
+        }
+    }
+
+    private async Task WithdrawAsync(Guid accountId)
+    {
+        var am = accountAmounts.First(a => a.Id == accountId);
+        am.Error = null;
+        var amount = am.Amount;
+        if (amount <= 0M)
+        {
+            am.Error = "Belopp måste vara större än 0.";
+            return;
+        }
+
+        try
+        {
+            await AccountService.Withdraw(accountId, amount);
+            await RefreshAsync();
+            am.Amount = 0M;
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Otillräckligt saldo
+            am.Error = ex.Message;
+        }
+        catch (ArgumentException ex)
+        {
+            // Negativt eller ogiltigt belopp
+            am.Error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            am.Error = "Fel: " + ex.Message;
+        }
+    }
+}
