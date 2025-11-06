@@ -3,59 +3,59 @@
 @using banken.Interface
 @inject IAccountService AccountService
 
-<h3>Transfer</h3>
+<h3>Transfer</h3> <!-- Sida rubrik -->
 
 @if (!string.IsNullOrEmpty(ErrorMessage))
 {
     <div class="alert alert-danger" role="alert">
-        @ErrorMessage
+        @ErrorMessage <!-- Visar eventuellt felmeddelande -->
     </div>
 }
 
 @if (_accounts == null || _accounts.Count < 2)
 {  // Transferra pengar från 1 konto till en annan
-   <p>Skapa minst 2 konto för att göra en transaktion</p>
+   <p>Skapa minst 2 konto för att göra en transaktion</p> <!-- Visa meddelande om för få konton -->
 }
 else
 {
-    <EditForm Model="_model" OnValidSubmit="OnSubmitAsync">
+    <EditForm Model="_model" OnValidSubmit="OnSubmitAsync"> <!-- Formulär för överföring -->
         <DataAnnotationsValidator />
         <ValidationSummary />
 
-        <div class="mb-2">
+        <div class="mb-2"> <!-- Välj från-konto -->
             <label>Från konto</label>
             <InputSelect TValue="Guid" @bind-Value="_model.FromAccountId" class="form-select" @onchange="HandleFormChanged">
                 <option value="@Guid.Empty">Välj konto..</option>
                 @foreach (var account in _accounts)
-                { // Shows accounts you can transfer from.
+                { // Visar konton som kan användas som avsändare
                     <option value="@account.Id">@account.Name - Saldo: @account.Balance</option>
                 }
             </InputSelect>
         </div>
 
-        <div class="mb-2">
+        <div class="mb-2"> <!-- Välj till-konto -->
             <label>Till konto</label>
             <InputSelect TValue="Guid" @bind-Value="_model.ToAccountId" class="form-select" disabled="@(_model.FromAccountId == Guid.Empty)">
                 <option value="@Guid.Empty">Välj konto</option>
                 @foreach(var account in _toAccounts)
-                { // Shows accounts you can transfer to.
+                { // Visar konton som kan användas som mottagare
                     <option value="@account.Id">@account.Name - Saldo: @account.Balance</option>
                 }
             </InputSelect>
         </div>
 
-        <div class="mb-2">
+        <div class="mb-2"> <!-- Belopp att överföra -->
             <label>Belopp</label>
             <InputNumber TValue="decimal" @bind-Value="_model.Amount" class="form-control" />
         </div>
 
-        <button type="submit" class="btn btn-primary">Överför</button>
+        <button type="submit" class="btn btn-primary">Överför</button> <!-- Skicka överföringen -->
     </EditForm>
 
     <h4>Konto</h4>
     <ul>
         @foreach (var account in _accounts)
-        { // Shows your currently selected accounts to transfer to and from.
+        { // Visar dina konton för översikt
             <li>
                 @account.Name - Saldo: @account.Balance
             </li>
@@ -64,51 +64,54 @@ else
 }
 
 @code {
+    // Model för formuläret
     private readonly TransferMFormModel _model = new();
+    // Lista med tillgängliga konton
     private List<IBankAccount> _accounts = new();
+    // Lista med möjliga mottagarkonton (uppdateras när från-konto väljs)
     private List<IBankAccount> _toAccounts = new();
 
-    private string? ErrorMessage;
+    private string? ErrorMessage; // Felmeddelande som kan visas i UI
 
     private class TransferMFormModel
     {
-        public Guid FromAccountId { get; set; }
-        public Guid ToAccountId { get; set; }
-        public decimal Amount { get; set; }
+        public Guid FromAccountId { get; set; } // Id för avsändarkonto
+        public Guid ToAccountId { get; set; } // Id för mottagarkonto
+        public decimal Amount { get; set; } // Överfört belopp
     }
 
     protected override async Task OnInitializedAsync()
     {
-        _accounts = await AccountService.GetAccounts();
+        _accounts = await AccountService.GetAccounts(); // Hämta konton
         _toAccounts = _accounts.ToList(); // kopiera till listan för mottagarkonton
     }
 
     private async Task OnSubmitAsync()
     {
-        ErrorMessage = string.Empty;
+        ErrorMessage = string.Empty; // nollställ fel
 
         if (_model.FromAccountId == Guid.Empty || _model.ToAccountId == Guid.Empty)
         {
-            ErrorMessage = "Välj både från- och tillkonto.";
+            ErrorMessage = "Välj både från- och tillkonto."; // validera val
             StateHasChanged();
             return;
         }
 
         if (_model.FromAccountId == _model.ToAccountId)
         {
-            ErrorMessage = "Du kan inte överföra till samma konto.";
+            ErrorMessage = "Du kan inte överföra till samma konto."; // kontroll: samma konto
             StateHasChanged();
             return;
         }
 
         try
         {
-            await AccountService.Transfer(_model.FromAccountId, _model.ToAccountId, _model.Amount);
+            await AccountService.Transfer(_model.FromAccountId, _model.ToAccountId, _model.Amount); // anropa service för överföring
        
-            _accounts = await AccountService.GetAccounts();
+            _accounts = await AccountService.GetAccounts(); // uppdatera lokala listor efter överföring
             _toAccounts = _accounts.Where(a => a.Id != _model.FromAccountId).ToList();
 
-            _model.Amount = 0;
+            _model.Amount = 0; // nollställ formulär
             _model.ToAccountId = Guid.Empty;
             _model.FromAccountId = Guid.Empty;
 
@@ -117,12 +120,12 @@ else
         catch (InvalidOperationException ex)
         {
             // t.ex. "Insufficient funds"
-            ErrorMessage = ex.Message;
+            ErrorMessage = ex.Message; // visa fel som kommer från domänlogiken
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            ErrorMessage = "Ett oväntligt fel inträffade: " + ex.Message;
+            ErrorMessage = "Ett oväntligt fel inträffade: " + ex.Message; // generell felhantering
             StateHasChanged();
         }
     }
@@ -131,24 +134,24 @@ else
     {
         if (Guid.TryParse(eventArgs.Value?.ToString(), out var id))
         {
-            OnFormChanged(id);
+            OnFormChanged(id); // vidarebefordra till logik som uppdaterar mottagarlistan
         }
     }
 
     private void OnFormChanged(Guid fromId)
     {
-        _model.FromAccountId = fromId;
+        _model.FromAccountId = fromId; // uppdatera modellens från-konto
         var from = _accounts.FirstOrDefault(x => x.Id == fromId);
 
         if (from != null)
         {
-            _toAccounts = _accounts.Where(x => x.Id != fromId).ToList();
+            _toAccounts = _accounts.Where(x => x.Id != fromId).ToList(); // ta bort valt från-konto från mottagarlistan
         }
         else
         {
-            _toAccounts = _accounts.ToList();
+            _toAccounts = _accounts.ToList(); // återställ hela listan
         }
 
-        _model.ToAccountId = Guid.Empty;
+        _model.ToAccountId = Guid.Empty; // nollställ mottagarfält
     }
 }

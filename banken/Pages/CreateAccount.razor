@@ -1,88 +1,90 @@
 ﻿@page "/CreateAccount"
 @inject IAccountService AccountService
 @inject IJSRuntime JsRuntime
+ 
+<h3>Vänligen skapa ett konto</h3> <!-- Rubrik för sidan -->
 
-<h3>Vänligen skapa ett konto</h3>
+<EditForm Model="_model" OnValidSubmit="CreateAccountAsync"> <!-- Formulär som binder mot _model och anropar CreateAccountAsync när valid -->
+    <DataAnnotationsValidator /> 
+    <ValidationSummary /> <!-- Visar sammanfattning av valideringsfel -->
 
-<EditForm Model="_model" OnValidSubmit="CreateAccountAsync">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <!-- Använd "Bootstrap-formrader"" så fälten får samma bredd -->
-    <div class="mb-3 row">
-        <!-- "row" signalerar att jag använder bootstrap template. mb 3 = storleken av mellanrum mellan fält-->
-        <label class="col-sm-3 col-form-label">Kontonamn</label> <!-- col sm 3 = 3 kolumner tas upp på skärmen utav 12. col form label = labeln alignas snyggt vertikalt med inputfältet-->
-        <div class="col-sm-9">
+    <!-- Använd Bootstrap formrader så fälten får samma bredd -->
+    <div class="mb-3 row"> <!-- Bootstrap rad med marginal nederst -->
+        <!-- row signalerar att jag använder bootstrap template. mb 3 = storleken av mellanrum mellan fält-->
+        <label class="col-sm-3 col-form-label">Kontonamn</label> <!-- Label som tar 3 kolumner -->
+        <div class="col-sm-9"> <!-- Inputfältet tar resterande 9 kolumner -->
             <!-- input fältet tar up de resterande 9 kolumnerna -->
-            <InputText class="form-control" @bind-Value="_model.Name" /> <!-- form control ger bootstrappen en standard stil med t.ex avrundade hörn -->
+            <InputText class="form-control" @bind-Value="_model.Name" /> <!-- Textinput bunden till modellens Name -->
         </div>
     </div>
 
-    <div class="mb-3 row">
-        <label class="col-sm-3 col-form-label">Kontotyp</label>
-        <div class="col-sm-9">
-            <InputSelect class="form-select" @bind-Value="_model.Type">
-                <option value="">Välj kontotyp!</option>
-                <option value="@AccountType.Checking">Baskonto</option>
-                <option value="@AccountType.Savings">Sparkonto</option>
+    <div class="mb-3 row"> <!-- Ny rad för kontotyp -->
+        <label class="col-sm-3 col-form-label">Kontotyp</label> <!-- Label för select -->
+        <div class="col-sm-9"> <!-- Container för select -->
+            <InputSelect class="form-select" @bind-Value="_model.Type"> <!-- Select bunden till Type -->
+                <option value="">Välj kontotyp!</option> <!-- Default alternativ -->
+                <option value="@AccountType.Checking">Baskonto</option> <!-- Värde för checking -->
+                <option value="@AccountType.Savings">Sparkonto</option> <!-- Värde för savings -->
             </InputSelect>
         </div>
     </div>
 
-    <div class="mb-3 row">
-        <label class="col-sm-3 col-form-label">Valuta</label>
-        <div class="col-sm-9">
-            <InputText class="form-control" @bind-Value="_model.Currency" @oninput="ValidateCurrency" />
+    <div class="mb-3 row"> <!-- Rad för valuta -->
+        <label class="col-sm-3 col-form-label">Valuta</label> <!-- Valuta-label -->
+        <div class="col-sm-9"> <!-- Container för valutainput -->
+            <InputText class="form-control" @bind-Value="_model.Currency" @oninput="ValidateCurrency" /> <!-- Textinput med oninput-validering -->
             @if (!string.IsNullOrEmpty(currencyError))
             {
-                <div class="text-danger small mt-1">@currencyError</div>
+                <div class="text-danger small mt-1">@currencyError</div> <!-- Visa felmeddelande för valuta -->
             }
         </div>
     </div>
 
-    <div class="mb-3 row">
-        <label class="col-sm-3 col-form-label">Start saldo</label>
-        <div class="col-sm-9">
-            <InputNumber class="form-control" TValue="decimal" @bind-Value="_model.InitialBalance" />
+    <div class="mb-3 row"> <!-- Rad för start saldo -->
+        <label class="col-sm-3 col-form-label">Start saldo</label> <!-- Label för saldo -->
+        <div class="col-sm-9"> <!-- Container för InputNumber -->
+            <InputNumber class="form-control" TValue="decimal" @bind-Value="_model.InitialBalance" /> <!-- Numeriskt input bunden till InitialBalance -->
         </div>
     </div>
 
-    <div class="mb-3 row">
-        <div class="col-sm-9 offset-sm-3">
-            <button type="submit" class="btn btn-primary" disabled="@IsFormInvalid">Skapa</button>
+    <div class="mb-3 row"> <!-- Rad för submit-knapp -->
+        <div class="col-sm-9 offset-sm-3"> <!-- Knappen indragen så den ligger under input-fälten -->
+            <button type="submit" class="btn btn-primary" disabled="@IsFormInvalid">Skapa</button> <!-- Skapa-knapp, inaktiverad om formulär ogiltigt -->
         </div>
     </div>
 </EditForm>
 
-<hr />
+<ehr /> <!-- Avdelare -->
 
-<h4>Dina konton (@accounts.Count)</h4>
+<h4>Dina konton (@accounts.Count)</h4> <!-- Visar antal konton -->
 
 @if (accounts.Count == 0)
 {
-    <p>Det finns inga konton, ännu registrera ditt första konto ovan!</p>
+    <p>Det finns inga konton, ännu registrera ditt första konto ovan!</p> <!-- Meddelande när inga konton, ifall det inte var tydligt redan -->
 }
 
-<ul class="list-unstyled">
+<ul class="list-unstyled"> <!-- Lista utan standardpunkter -->
     @foreach (var account in accounts)
     { // Kod för varje konto som blir skapad
-      <li class="d-flex justify-content-between align-items-start mb-2 p-2 border rounded">
-          <div>
-              <div class="lh-sm">
-                  <strong>@account.Name</strong> - @account.Type - @account.InitialBalance - @account.Currency
+      <li class="d-flex justify-content-between align-items-start mb-2 p-2 border rounded"> <!-- Flexcontainer för konto-rad -->
+          <div> <!-- Vänsterdel med kontoinfo -->
+              <div class="lh-sm"> <!-- Litet radavstånd -->
+                  <strong>@account.Name</strong> - @account.Type - @account.InitialBalance - @account.Currency <!-- Visar namn, typ, saldo och valuta -->
               </div>
-              <small class="text-muted">(uppdaterad @account.LastUpdated.ToLocalTime())</small>
+              <small class="text-muted">(uppdaterad @account.LastUpdated.ToLocalTime())</small> <!-- Visar senaste uppdateringstid -->
           </div>
 
-            <div class="ms-3">
-                <button class="btn btn-danger btn-sm" style="min-width:96px;" @onclick="async () => await RemoveAccountWithConfirmAsync(account)">Ta bort</button>
+            <div class="ms-3"> <!-- Högerdel med knapp -->
+                <button class="btn btn-danger btn-sm" style="min-width:96px;" @onclick="async () => await RemoveAccountWithConfirmAsync(account)">Ta bort</button> <!-- Ta bort-knapp som anropar bekräftelse -->
             </div>
         </li>
     }
 </ul>
 
 @code {
+    // Modell som bindas mot formuläret
     private CreateAccountModel _model = new();
+    // Lokal lista med konto-modeller för UI
     private List<CreateAccountModel> accounts = new();
 
 
@@ -91,14 +93,14 @@
         // Hämta konton som redan finns sparade i AccountService (t.ex. från local storage)
         var existingAccounts = await AccountService.GetAccounts();
 
-        // Lägg till dem i din lokala lista så de syns i UI:t
+        // Lägg till dem i din lokala lista så de syns i UI'n
         accounts = existingAccounts.Select(a => new CreateAccountModel
         {
-            Name = a.Name,
-            Type = a.AccountType,
-            Currency = a.Currency,
-            InitialBalance = a.Balance,
-            LastUpdated = a.LastUpdated.ToLocalTime()
+            Name = a.Name, // konto namn
+            Type = a.AccountType, // konto typ
+            Currency = a.Currency, // valuta
+            InitialBalance = a.Balance, // visa aktuellt saldo som initial balance i listan
+            LastUpdated = a.LastUpdated.ToLocalTime() // konvertera tid till lokal tid
         }).ToList();
     }
 
@@ -107,6 +109,7 @@
     {
         try
         {
+            // Anropa service för att skapa konto med värden från modellen
             await AccountService.CreateAccount(
                 _model.Name,
                 _model.Type,
@@ -114,8 +117,10 @@
                 _model.InitialBalance
             );
 
+            // Hämta uppdaterad lista med konton efter skapande
             var existingAccounts = await AccountService.GetAccounts();
 
+            // Uppdatera listan med de senaste värdena
             accounts = existingAccounts.Select(a => new CreateAccountModel
             {
                 Name = a.Name,
@@ -125,67 +130,67 @@
                 LastUpdated = a.LastUpdated.ToLocalTime()
             }).ToList();
 
-            _model = new CreateAccountModel();
+            _model = new CreateAccountModel(); // nollställ formulärmodellen efter skapande
 
-            StateHasChanged();
+            StateHasChanged(); // begär UI-uppdatering
         }
         catch (Exception exception)
         {
-            Console.WriteLine(exception);
+            Console.WriteLine(exception); // logga fel i konsollen
         }
     }
 
     private async Task RemoveAccount(CreateAccountModel account)
     { // Metod för att ta bort konton
-        await AccountService.DeleteAccount(account.Name);
-        accounts.Remove(account);
-        StateHasChanged();
+        await AccountService.DeleteAccount(account.Name); // anropa service för att ta bort
+        accounts.Remove(account); // ta bort från lokal lista
+        StateHasChanged(); // uppdatera UI
     }
 
     private async Task RemoveAccountWithConfirmAsync(CreateAccountModel account)
     {
         if (account.InitialBalance > 0)
         { // Varnings meddelande ifall du försöker ta bort ett konto med pengar inuti.
-            var formatted = account.InitialBalance.ToString("F2");
-            var message = $"Kontots saldo har resterande balans ({formatted}), är du säker du vill ta bort kontot?";
+            var formatted = account.InitialBalance.ToString("F2"); // formatera saldo
+            var message = $"Kontots saldo har resterande balans ({formatted}), är du säker du vill ta bort kontot?"; // fråga text
             // prompta en bool som fortsätter med raderingen om sann, annars returnerar tillbaka om du avbryter.
-            var ok = await JsRuntime.InvokeAsync<bool>("confirm", message);
-            if (!ok) return;
+            var ok = await JsRuntime.InvokeAsync<bool>("confirm", message); // visa JS-confirm
+            if (!ok) return; // avbryt om användaren säger nej
         }
 
-        await RemoveAccount(account);
+        await RemoveAccount(account); // fortsätt och ta bort kontot
     }
 
     private class CreateAccountModel
     {
-        public string Name { get; set; } = string.Empty;
-        public AccountType Type { get; set; }
-        public string Currency { get; set; } = string.Empty;
-        public decimal InitialBalance { get; set; }
-        public DateTime LastUpdated { get; set; }
+        public string Name { get; set; } = string.Empty; // konto namn
+        public AccountType Type { get; set; } // konto typ (enum)
+        public string Currency { get; set; } = string.Empty; // valuta
+        public decimal InitialBalance { get; set; } // start saldo
+        public DateTime LastUpdated { get; set; } // tidpunkt för sista uppdatering
     }
 
-    private string? currencyError;
+    private string? currencyError; // lokal variabel för valutafel
     // kod för att se till användaren skriver rätt valuta
     private void ValidateCurrency(ChangeEventArgs e)
     {
-        var input = e.Value?.ToString()?.ToUpper();
+        var input = e.Value?.ToString()?.ToUpper(); // läs och normalisera input
 
         if (input == "SEK" || input == "USD")
         {
-            _model.Currency = input;
+            _model.Currency = input; // spara giltig valuta
             currencyError = null; // rensa felmeddelande
         }
         else
         {
-            _model.Currency = string.Empty;
-            currencyError = "Du måste skriva SEK eller USD.";
+            _model.Currency = string.Empty; // töm fältet vid ogiltig valuta
+            currencyError = "Du måste skriva SEK eller USD."; // sätt felmeddelande
         }
     }
     // kod för att inaktivera skapa knapp om formuläret är ogiltigt
     private bool IsFormInvalid =>
-    string.IsNullOrWhiteSpace(_model.Name) ||
-    string.IsNullOrWhiteSpace(_model.Currency) ||
-    _model.InitialBalance <= 0 ||
-    !string.IsNullOrEmpty(currencyError);
+    string.IsNullOrWhiteSpace(_model.Name) || // namn får inte vara tomt
+    string.IsNullOrWhiteSpace(_model.Currency) || // valuta får inte vara tom
+    _model.InitialBalance <= 0 || // saldo måste vara större än 0
+    !string.IsNullOrEmpty(currencyError); // eller det finns ett valutafel
 }

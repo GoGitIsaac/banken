@@ -1,19 +1,18 @@
-﻿
-namespace banken.Interface
+﻿namespace banken.Interface
 {
 
-    // Interface containing the BankAccount Methods
+    // Interface som beskriver vad ett bankkonto måste exponera
     public interface IBankAccount
     {
-       Guid Id { get; }
-       string Name { get; }
-       AccountType AccountType { get; }
-       string Currency { get; }
-       decimal Balance { get; }
-       DateTime LastUpdated { get; }
+       Guid Id { get; } // Unikt id för kontot
+       string Name { get; } // Kontots namn
+       AccountType AccountType { get; } // Typ av konto (enum)
+       string Currency { get; } // Valuta för kontot
+       decimal Balance { get; } // Aktuellt saldo
+       DateTime LastUpdated { get; } // Senaste uppdateringstidpunkt
        
-       void Withdraw(decimal amount);
-       void Deposit(decimal amount);
-       void TransferTo(BankAccount toAccount, decimal amount);
+       void Withdraw(decimal amount); // Uttag från kontot
+       void Deposit(decimal amount); // Insättning till kontot
+       void TransferTo(BankAccount toAccount, decimal amount); // Överföring till annat konto (konkret typ används här)
     }
 }

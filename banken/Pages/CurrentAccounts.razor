@@ -1,4 +1,4 @@
-﻿    @page "/CurrentAccounts"
+﻿@page "/CurrentAccounts"
 @using banken.Interface
 @inject IAccountService AccountService
 
@@ -13,7 +13,7 @@ else if (!accounts.Any())
     <p>Det finns inga konton.</p>
 }
 else
-{ // 
+{  // 
     <table class="table">
         <thead>
             <tr>

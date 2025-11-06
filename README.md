@@ -1,5 +1,7 @@
 # banken - Hur jag skapa koden. (Delarna jag jobbade på)
 
+För det första kodade jag för det mesta på Svenska med några delar som är engelskt, men inför framtiden kommer jag att koda på primärt på engelska nu då jag vet att det är vad jag ska göra.
+
 Min kod har jag skapat genom att för det mesta följa av Arbers vägledning under lektioner, men annat än det behövde jag lista ut själv.
 
 Mitt första problem som jag behövde reda ut var i min CreateAccount då jag behövde bestämma hur utseendet av sidan skulle se ut. Så som jag hade det var att UI'n visade sig vara rörig. "Ta Bort" knapporna för konton skulle vara för stora och röra varandra, alla input boxes skulle vara olika längder, och det var helt enkelt inte strukturerad och såg inte rent ut. För att fixa detta valde jag att byta min UI struktur från det orena jag hade, till en bootstrap format där jag använde mig av "row" i min CreateAccount för att kunna omvandla min page till en ren och strukturerad version av sig själv. Då kunde jag optimisera storleken av alla fält till att vara lika stora och på så sätt vara mycket snyggare.
