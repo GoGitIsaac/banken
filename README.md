@@ -1,6 +1,6 @@
 # banken - Hur jag skapa koden. (Delarna jag jobbade på)
 
-För det första kodade jag för det mesta på Svenska med några delar som är engelskt, men inför framtiden kommer jag att koda på primärt på engelska nu då jag vet att det är vad jag ska göra.
+För det första kodade jag för det mesta på Svenska med några delar som är engelskt, men inför framtiden kommer jag att koda primärt på engelska nu då jag vet att det är vad jag ska göra.
 
 Min kod har jag skapat genom att för det mesta följa av Arbers vägledning under lektioner, men annat än det behövde jag lista ut själv.
 
