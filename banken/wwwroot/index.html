@@ -26,6 +26,25 @@
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
+
+    <script>
+        // Helper method to download text content as file from Blazor
+        window.downloadFile = (filename, content) => {
+            try {
+                const blob = new Blob([content], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+            } catch (e) {
+                console.error('downloadFile error', e);
+            }
+        };
+    </script>
+
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 

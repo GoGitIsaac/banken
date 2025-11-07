@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Reflection;
 using banken.Domain;
 using banken.Interface;
 
@@ -21,6 +24,13 @@ namespace banken.Services
         private readonly IStorageService _storageService;
         // Global lista med transaktioner för snabb åtkomst
         private readonly List<Transaction> _transactions = new();
+
+        // Json-options som används för export/import
+        private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter() }
+        };
 
         // Konstruktor med injicerad storage-tjänst
         public AccountService(IStorageService storageService) => _storageService = storageService;
@@ -201,6 +211,125 @@ namespace banken.Services
 
             await _storageService.SetItemAsync("banken.transactions", _transactions);
             await SaveAccounts();
+        }
+
+        // Exportera alla konton och transaktioner till JSON
+        public async Task<string> ExportJsonAsync()
+        {
+            await IsInitialized();
+
+            var exportObj = new
+            {
+                accounts = _accounts,
+                transactions = _transactions
+            };
+
+            return JsonSerializer.Serialize(exportObj, _jsonOptions);
+        }
+
+        // Importera konton och transaktioner från JSON (validerar innehåll)
+        public async Task ImportFromJsonAsync(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                throw new ArgumentException("Empty JSON provided", nameof(json));
+
+            ImportModel? model;
+            try
+            {
+                model = JsonSerializer.Deserialize<ImportModel>(json, _jsonOptions);
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException("Invalid JSON format: " + ex.Message, ex);
+            }
+
+            if (model is null)
+                throw new ArgumentException("Invalid JSON content");
+
+            // Grundläggande validering
+            if (model.Accounts is null)
+                throw new ArgumentException("Accounts missing in JSON");
+            if (model.Transactions is null)
+                throw new ArgumentException("Transactions missing in JSON");
+
+            // Unika konton
+            if (model.Accounts.GroupBy(a => a.Id).Any(g => g.Count() > 1))
+                throw new ArgumentException("Duplicate account IDs in JSON");
+
+            // Validera konton
+            foreach (var acc in model.Accounts)
+            {
+                if (string.IsNullOrWhiteSpace(acc.Name))
+                    throw new ArgumentException("Account with empty name found");
+                if (string.IsNullOrWhiteSpace(acc.Currency))
+                    throw new ArgumentException($"Account {acc.Name} has empty currency");
+                if (acc.Balance < 0)
+                    throw new ArgumentException($"Account {acc.Name} has negative balance");
+            }
+
+            // Validera transaktioner
+            var accountIds = model.Accounts.Select(a => a.Id).ToHashSet();
+            if (model.Transactions.GroupBy(t => t.Id).Any(g => g.Count() > 1))
+                throw new ArgumentException("Duplicate transaction IDs in JSON");
+
+            foreach (var t in model.Transactions)
+            {
+                if (t.Amount <= 0)
+                    throw new ArgumentException($"Transaction {t.Id} has non-positive amount");
+
+                // Kontrollera referenser beroende på typ
+                switch (t.TransactionType)
+                {
+                    case TransactionType.Deposit:
+                        if (t.ToAccountId == Guid.Empty || !accountIds.Contains(t.ToAccountId))
+                            throw new ArgumentException($"Deposit transaction {t.Id} references invalid to-account");
+                        break;
+                    case TransactionType.Withdraw:
+                        if (t.FromAccountId == null || t.FromAccountId == Guid.Empty || !accountIds.Contains(t.FromAccountId.Value))
+                            throw new ArgumentException($"Withdraw transaction {t.Id} references invalid from-account");
+                        break;
+                    case TransactionType.TransferIn:
+                    case TransactionType.TransferOut:
+                        if (t.FromAccountId == null || t.FromAccountId == Guid.Empty || !accountIds.Contains(t.FromAccountId.Value))
+                            throw new ArgumentException($"Transfer transaction {t.Id} references invalid from-account");
+                        if (t.ToAccountId == Guid.Empty || !accountIds.Contains(t.ToAccountId))
+                            throw new ArgumentException($"Transfer transaction {t.Id} references invalid to-account");
+                        break;
+                    default:
+                        throw new ArgumentException($"Unknown transaction type for {t.Id}");
+                }
+            }
+
+            // Validering klar — ersätt intern data
+            _accounts.Clear();
+            _accounts.AddRange(model.Accounts);
+
+            _transactions.Clear();
+            _transactions.AddRange(model.Transactions);
+
+            // Sätt per-konto transaktionslistor via reflection
+            var privateListField = typeof(BankAccount).GetField("_transactions", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (privateListField != null)
+            {
+                foreach (var acc in _accounts)
+                {
+                    var accTrans = _transactions.Where(t => (t.FromAccountId != null && t.FromAccountId == acc.Id) || t.ToAccountId == acc.Id).ToList();
+                    privateListField.SetValue(acc, accTrans);
+                }
+            }
+
+            // Spara till storage
+            await _storageService.SetItemAsync("banken.accounts", _accounts);
+            await _storageService.SetItemAsync("banken.transactions", _transactions);
+
+            // markera som initierad
+            isLoaded = true;
+        }
+
+        private class ImportModel
+        {
+            public List<BankAccount>? Accounts { get; set; }
+            public List<Transaction>? Transactions { get; set; }
         }
     }
 }

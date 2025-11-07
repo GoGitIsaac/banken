@@ -1,0 +1,105 @@
+@page "/ExportImport"
+@inject IAccountService AccountService
+@inject IJSRuntime JS
+
+<h3>Export / Import</h3> <!-- Sida för export och import av JSON-data -->
+
+
+<div class="mb-3"> <!-- Sektion för export -->
+    <button class="btn btn-primary" @onclick="ExportAsync">Exportera JSON</button> <!-- Trigger för att skapa och ladda ner JSON-fil -->
+    @if (!string.IsNullOrEmpty(exportStatus))
+    {
+        <div class="mt-2">@exportStatus</div> <!-- Visar statusmeddelande efter exportförsök -->
+    }
+</div>
+
+<hr />
+
+<div class="mb-3"> <!-- Sektion för import -->
+    <label class="form-label">Importera från .json-fil</label> <!-- Instruktion till användaren -->
+    <InputFile OnChange="OnInputFileChange" /> <!-- Filväljarkomponent från Blazor -->
+    <div class="mt-2">
+        <button class="btn btn-success" @onclick="ImportFromSelectedFile" disabled="@(!fileSelected)">Importera</button> <!-- Starta import av vald fil -->
+        <button class="btn btn-secondary ms-2" @onclick="ClearSelectedFile" disabled="@(!fileSelected)">Rensa</button> <!-- Rensa valt filval -->
+    </div>
+    @if (!string.IsNullOrEmpty(importStatus))
+    {
+        <div class="mt-2 @(importSuccess ? "text-success" : "text-danger")">@importStatus</div> <!-- Visar resultat av import (fel eller succé) -->
+    }
+</div>
+
+@code {
+    // Lokalt val av fil via InputFile
+    private IBrowserFile? selectedFile;
+    // Hjälpegenskap som indikerar om en fil är vald
+    private bool fileSelected => selectedFile != null;
+    // Statusmeddelande för export
+    private string? exportStatus;
+    // Statusmeddelande för import
+    private string? importStatus;
+    // Flagga om importen var lyckad
+    private bool importSuccess;
+
+    // Anropas när användaren klickar Exportera
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var json = await AccountService.ExportJsonAsync(); // hämta JSON från servicen
+            var filename = $"banken_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json"; // generera filnamn
+            await JS.InvokeVoidAsync("downloadFile", filename, json); // anropa JS för att spara fil
+            exportStatus = $"Export lyckades: {filename}"; // uppdatera status
+        }
+        catch (Exception ex)
+        {
+            exportStatus = "Export misslyckades: " + ex.Message; // visa fel
+        }
+    }
+
+    // Hanterar filval från InputFile
+    private void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File; // spara referens till vald fil
+        importStatus = $"Vald fil: {selectedFile.Name} ({selectedFile.Size} bytes)"; // visa filinfo
+        importSuccess = false; // återställ succéflagga
+    }
+
+    // Läs filen och skicka innehåll till AccountService för validering och import
+    private async Task ImportFromSelectedFile()
+    {
+        if (selectedFile == null)
+        {
+            importStatus = "Ingen fil vald.";
+            importSuccess = false;
+            return;
+        }
+
+        try
+        {
+            // Läs filens innehåll (med maxstorlek 20 MB)
+            using var stream = selectedFile.OpenReadStream(20_000_000);
+            using var ms = new System.IO.MemoryStream();
+            await stream.CopyToAsync(ms);
+            var json = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+
+            // Anropa servicen som validerar och importerar JSON
+            await AccountService.ImportFromJsonAsync(json);
+
+            importStatus = "Import lyckades."; // uppdatera status vid framgång
+            importSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            importStatus = "Import misslyckades: " + ex.Message; // visa felorsak
+            importSuccess = false;
+        }
+    }
+
+    // Rensa valt filval och statusmeddelanden
+    private void ClearSelectedFile()
+    {
+        selectedFile = null;
+        importStatus = null;
+        importSuccess = false;
+    }
+}

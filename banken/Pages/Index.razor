@@ -1,14 +1,32 @@
 ﻿@page "/"
 @using banken.Services
 @inject UserService UserService
+@inject IJSRuntime JS
 
-<h1>Hey Isaac!</h1> 
+@if (!pinVerified)
+{
+    <p><em>Verifying PIN...</em></p> <!-- Visas medan PIN-status kontrolleras -->
+}
+else
+{
+    <h1>Hey Isaac!</h1> <!-- Huvudrubrik som visas efter PIN-verifiering -->
+}
 
 @code {
-    private string userName;
-     
+    private string? userName; // sparar användarnamn om det behövs
+    private bool pinVerified; // flagga om PIN redan verifierats i session
+
     protected override async Task OnInitializedAsync()
     {
-        userName = await UserService.GetUserNameAsync();
+        userName = await UserService.GetUserNameAsync(); // hämta användarnamn
+        try
+        {
+            var val = await JS.InvokeAsync<string?>("sessionStorage.getItem", "pinVerified"); // kontrollera sessionStorage
+            pinVerified = val == "1"; // sätt flagga
+        }
+        catch
+        {
+            pinVerified = false; // antag ej verifierad vid fel
+        }
     }
 }

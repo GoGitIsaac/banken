@@ -31,5 +31,11 @@ namespace banken.Interface
 
         // Rensa alla transaktioner (globala + i konton)
         Task ClearAllTransactions();
+
+        // Exportera alla konton och transaktioner till JSON
+        Task<string> ExportJsonAsync();
+
+        // Importera konton och transaktioner från JSON (validerar innehåll)
+        Task ImportFromJsonAsync(string json);
     }
 }

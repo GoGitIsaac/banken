@@ -1,5 +1,7 @@
 # banken - Hur jag skapade koden. (Delarna jag jobbade på)
 
+Pin Koden är: 1234
+
 Jag kodade för det mesta på svenska med några delar på engelska, men inför framtiden kommer jag att koda primärt nu när jag vet att det är vad jag ska göra. En stor del av min kod skapades genom att följa Arbers vägledning under lektionerna, men annat än det behövde jag lösa ut själv.
 
 Mitt första poblem uppstod i min CreateAccount sida där jag behövde bestämma hur sidans utseende skulle se ut. Som jag hade det var UI'n rörig i hur "Ta Bort" knapparna var för stora och låg för nära varandra, input fälten hade olika längd, och såg konstig ut. För att lösa detta valde jag att byta till Bootstrap format. Genom att använda rader och kolumner med row och col kunde jag skapa ett mer strukturerat och ren UI. Det gjorde att alla fält fick samma storlek och sidan blev både renare och mer professionell.

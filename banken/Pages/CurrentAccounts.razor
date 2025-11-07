@@ -43,12 +43,15 @@ else
                     </td>
                     <td>
                         <button class="btn btn-sm btn-success me-1" @onclick="() => DepositAsync(account.Id)">Sätt in</button>
-                        <button class="btn btn-sm btn-warning" @onclick="() => WithdrawAsync(account.Id)">Ta ut</button>
+                        <button class="btn btn-sm btn-warning me-1" @onclick="() => WithdrawAsync(account.Id)">Ta ut</button>
+                        <button class="btn btn-sm btn-info" @onclick="() => CalculateInterestAsync(account.Id)">Beräkna ränta</button>
                     </td>
                 </tr>
             }
         </tbody>
     </table>
+
+    <div class="mt-2"><small>Ränta per månad: <strong>2%</strong></small></div>
 }
 
 @code {
@@ -62,6 +65,9 @@ else
     }
 
     private List<AccountAmountModel> accountAmounts = new();
+
+    // Månatlig räntesats (2%)
+    private const decimal MonthlyInterestRate = 0.02M;
 
     protected override async Task OnInitializedAsync()
     {
@@ -133,6 +139,43 @@ else
         {
             // Negativt eller ogiltigt belopp
             am.Error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            am.Error = "Fel: " + ex.Message;
+        }
+    }
+
+    private async Task CalculateInterestAsync(Guid accountId)
+    {
+        var am = accountAmounts.First(a => a.Id == accountId);
+        am.Error = null;
+
+        var account = accounts.FirstOrDefault(a => a.Id == accountId);
+        if (account == null)
+        {
+            am.Error = "Konto hittades inte.";
+            return;
+        }
+
+        if (account.Balance <= 0M)
+        {
+            am.Error = "Inget saldo att räkna ränta på.";
+            return;
+        }
+
+        var interest = decimal.Round(account.Balance * MonthlyInterestRate, 2);
+        if (interest <= 0M)
+        {
+            am.Error = "Beräknad ränta är 0.";
+            return;
+        }
+
+        try
+        {
+            // Sätt in räntan som en vanlig insättning så den sparas i transaktionshistorik
+            await AccountService.Deposit(accountId, interest);
+            await RefreshAsync();
         }
         catch (Exception ex)
         {

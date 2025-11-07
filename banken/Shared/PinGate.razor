@@ -1,0 +1,79 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JsRuntime
+
+@if (isVerified)
+{
+    @ChildContent
+}
+else
+{
+    <div class="pin-overlay" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:10000;">
+        <div class="card p-3" style="max-width:360px;width:100%;">
+            <h5 class="card-title">Enter PIN</h5>
+            <div class="mb-2">
+                <input @bind="pin" @bind:event="oninput" type="password" class="form-control" placeholder="Enter PIN" />
+            </div>
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <div class="text-danger mb-2">@error</div>
+            }
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-primary me-2" @onclick="VerifyPinAsync">Verify</button>
+                <button class="btn btn-secondary" @onclick="ClearPin">Clear</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; } // Innehåll som visas efter verifiering
+
+    private bool isVerified; // Flagga om PIN verifierats
+    private string pin = string.Empty; // Lokalt fält för inmatad PIN
+    private string? error; // Felmeddelande vid ogiltig PIN
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var val = await JsRuntime.InvokeAsync<string?>("sessionStorage.getItem", "pinVerified"); // Kontrollera sessionStorage
+            if (!string.IsNullOrEmpty(val) && val == "1")
+            {
+                isVerified = true; // om satt, markera verifierad
+            }
+        }
+        catch
+        {
+            // ignore JS errors, will prompt for PIN
+        }
+    }
+
+    private async Task VerifyPinAsync()
+    {
+        error = null;
+        if (pin == "1234")
+        {
+            isVerified = true; // lyckad verifiering
+            try
+            {
+                await JsRuntime.InvokeVoidAsync("sessionStorage.setItem", "pinVerified", "1"); // spara flagga i session
+            }
+            catch
+            {
+                // ignore
+            }
+            StateHasChanged();
+        }
+        else
+        {
+            error = "Incorrect PIN."; // felmeddelande
+        }
+    }
+
+    private void ClearPin()
+    {
+        pin = string.Empty; // rensa fält
+        error = null; // rensa felmeddelande
+    }
+}
